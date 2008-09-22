@@ -1,0 +1,3 @@
+SET search_path TO meta, pg_catalog;
+SET search_path TO public, pg_catalog;
+ALTER TABLE units ADD CONSTRAINT units_type_fk FOREIGN KEY (type) REFERENCES meta.types (id);

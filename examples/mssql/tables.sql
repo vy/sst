@@ -1,0 +1,17 @@
+CREATE TABLE META.TYPES (
+    ID int IDENTITY(1,1),
+    NAME varchar(max)
+)
+GO
+CREATE TABLE PUBLIC.COMPANIES (
+    ID int IDENTITY(1,1),
+    NAME varchar(max) NOT NULL
+)
+GO
+CREATE TABLE PUBLIC.UNITS (
+    ID int IDENTITY(10,2),
+    TYPE char,
+    CODE float DEFAULT -3.4,
+    COMPANY int
+)
+GO
