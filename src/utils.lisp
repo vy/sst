@@ -47,9 +47,9 @@
   `(format *current-stream* ,fmt ,@args))
 
 (def macro with-output-redirection ((directory filename) &body body)
-  (let ((pathname (make-pathname :directory directory :name filename)))
-    `(with-open-file
-         (*current-stream* ,pathname :direction :output :if-exists :supersede)
+  `(let ((pathname (make-pathname :directory ,directory :name ,filename)))
+     (with-open-file
+         (*current-stream* pathname :direction :output :if-exists :supersede)
        ,@body)))
 
 

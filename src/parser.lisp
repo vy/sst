@@ -160,103 +160,103 @@
 
 ;;; Main Producer Routines
 
-(def macro init-foreign-key-slots ()
-  `(dolist (schema *sql-schemas*)
-     (dolist (table (tables-of schema))
-       (dolist (fk-constraint
-                 ;; Sort constraints according to concatenated name order.
-                 (sort
-                  ;; Extract SQL-FOREIGN-KEY-CONSTRAINTs.
-                  (remove-if-not
-                   (lambda (constraint)
-                     (typep constraint 'sql-foreign-key-constraint))
-                   (constraints-of table))
-                  #'string<
-                  :key (lambda (constraint)
-                         (format-string
-                          "~a ~a"
-                          (ref-schema-name-of constraint)
-                          (ref-table-name-of constraint)))))
-         (let* ((ref-table
-                 (or (find
-                      ;; Find referenced table.
-                      (ref-table-name-of fk-constraint)
-                      (tables-of
-                       ;; Find referenced schema.
-                       (or (find (ref-schema-name-of fk-constraint)
-                                 *sql-schemas*
-                                 :key #'name-of
-                                 :test #'string=)
-                           (error (string-append
-                                   "Couldn't find referenced schema "
-                                   "for constraint ~a.")
-                                  fk-constraint)))
-                      :key #'name-of
-                      :test #'string=)
-                     (error
-                      "Couldn't find referenced table for constraint ~a."
-                      fk-constraint)))
-                (ref-column-name
-                 (column-name-of
-                  ;; Find a SQL-PRIMARY-KEY-CONSTRAINT on the referenced table.
-                  (or (find 'sql-primary-key-constraint
-                            (constraints-of ref-table)
-                            :key #'type-of)
-                      (error (string-append
-                              "Couldn't find a primary key on referenced "
-                              "table for constraint ~a.")
-                             fk-constraint)))))
-           ;; Check data-type consistency!
-           (let ((column
-                  (find (column-name-of fk-constraint)
-                        (columns-of table)
-                        :key #'name-of
-                        :test #'string=))
-                 (ref-column
-                  (find ref-column-name
-                        (columns-of ref-table)
-                        :key #'name-of
-                        :test #'string=)))
-             (unless (data-types-compatible-p column ref-column)
-               (format-warning
-                (string-append
-                 "Expected ~a data type doesn't match with the "
-                 "referenced ~a data type for constraint ~a on "
-                 "~s column of ~s table in ~s schema.~%")
-                (data-type-of column) (data-type-of ref-column)
-                fk-constraint (name-of column) (name-of table)
-                (name-of schema))))
-           ;; Check required indexes for ON DELETE CASCADE and ON UPDATE
-           ;; CASCADE modifiers.
-           (when (and
-                  (or (on-delete-cascade-p-of fk-constraint)
-                      (on-update-cascade-p-of fk-constraint))
-                  (not
-                   (or
-                    ;; This column should be a primary key,
-                    (when-let (pk-constraint
-                               (find 'sql-primary-key-constraint
-                                     (constraints-of table)
-                                     :key #'type-of))
-                      (string= (column-name-of pk-constraint)
-                               (column-name-of fk-constraint)))
-                    ;; or this column should have an explicit index.
-                    (some
-                     (lambda (index)
-                       (member (column-name-of fk-constraint)
-                               (mapcar #'car (column-names-of index))
-                               :test #'string=))
-                     (indexes-of table)))))
-             (format-warning
-              (string-append
-               "Missing index for ON DELETE CASCADE and/or ON UPDATE CASCADE "
-               "modifier(s) of constraint ~a of \"~a\" table in \"~a\" "
-               "schema.~%")
-              fk-constraint (name-of table) (name-of schema)))
-           ;; Fill REF-COLUMN-NAME slot.
-           (setf (ref-column-name-of fk-constraint) ref-column-name))))))
+(def function init-foreign-key-slots ()
+  (dolist (schema *sql-schemas*)
+    (dolist (table (tables-of schema))
+      (dolist (fk-constraint
+                ;; Sort constraints according to concatenated name order.
+                (sort
+                 ;; Extract SQL-FOREIGN-KEY-CONSTRAINTs.
+                 (remove-if-not
+                  (lambda (constraint)
+                    (typep constraint 'sql-foreign-key-constraint))
+                  (constraints-of table))
+                 #'string<
+                 :key (lambda (constraint)
+                        (format-string
+                         "~a ~a"
+                         (ref-schema-name-of constraint)
+                         (ref-table-name-of constraint)))))
+        (let* ((ref-table
+                (or (find
+                     ;; Find referenced table.
+                     (ref-table-name-of fk-constraint)
+                     (tables-of
+                      ;; Find referenced schema.
+                      (or (find (ref-schema-name-of fk-constraint)
+                                *sql-schemas*
+                                :key #'name-of
+                                :test #'string=)
+                          (error (string-append
+                                  "Couldn't find referenced schema "
+                                  "for constraint ~a.")
+                                 fk-constraint)))
+                     :key #'name-of
+                     :test #'string=)
+                    (error
+                     "Couldn't find referenced table for constraint ~a."
+                     fk-constraint)))
+               (ref-column-name
+                (column-name-of
+                 ;; Find a SQL-PRIMARY-KEY-CONSTRAINT on the referenced table.
+                 (or (find 'sql-primary-key-constraint
+                           (constraints-of ref-table)
+                           :key #'type-of)
+                     (error (string-append
+                             "Couldn't find a primary key on referenced "
+                             "table for constraint ~a.")
+                            fk-constraint)))))
+          ;; Check data-type consistency!
+          (let ((column
+                 (find (column-name-of fk-constraint)
+                       (columns-of table)
+                       :key #'name-of
+                       :test #'string=))
+                (ref-column
+                 (find ref-column-name
+                       (columns-of ref-table)
+                       :key #'name-of
+                       :test #'string=)))
+            (unless (data-types-compatible-p column ref-column)
+              (format-warning
+               (string-append
+                "Expected ~a data type doesn't match with the "
+                "referenced ~a data type for constraint ~a on "
+                "~s column of ~s table in ~s schema.~%")
+               (data-type-of column) (data-type-of ref-column)
+               fk-constraint (name-of column) (name-of table)
+               (name-of schema))))
+          ;; Check required indexes for ON DELETE CASCADE and ON UPDATE
+          ;; CASCADE modifiers.
+          (when (and
+                 (or (on-delete-cascade-p-of fk-constraint)
+                     (on-update-cascade-p-of fk-constraint))
+                 (not
+                  (or
+                   ;; This column should be a primary key,
+                   (when-let (pk-constraint
+                              (find 'sql-primary-key-constraint
+                                    (constraints-of table)
+                                    :key #'type-of))
+                     (string= (column-name-of pk-constraint)
+                              (column-name-of fk-constraint)))
+                   ;; or this column should have an explicit index.
+                   (some
+                    (lambda (index)
+                      (member (column-name-of fk-constraint)
+                              (mapcar #'car (column-names-of index))
+                              :test #'string=))
+                    (indexes-of table)))))
+            (format-warning
+             (string-append
+              "Missing index for ON DELETE CASCADE and/or ON UPDATE CASCADE "
+              "modifier(s) of constraint ~a of \"~a\" table in \"~a\" "
+              "schema.~%")
+             fk-constraint (name-of table) (name-of schema)))
+          ;; Fill REF-COLUMN-NAME slot.
+          (setf (ref-column-name-of fk-constraint) ref-column-name))))))
 
-(def (macro e) produce-sql-output
+(def (function e) produce-sql-output
     (pathname  output-directory rdbms &key
      (identifier-case :downcase)
      (schema-output-file "schemas.sql")
@@ -265,33 +265,35 @@
      (foreign-key-output-file "foreign-keys.sql")
      (index-output-file "indexes.sql"))
   (assert (member identifier-case (list :upcase :downcase :quote)))
-  `(let ((*current-rdbms* (make-instance ,rdbms))
-         (*current-stream* *standard-output*)
-         (*current-identifier-case* ,identifier-case)
-         (*sql-schemas*))
-     ;; Read schema structure.
-     ,@(with-open-file (in pathname)
-         (with-standard-io-syntax
-           (let ((*package* (find-package :sst)))
-             (loop for form =  (read in nil nil)
-                   while form collect form))))
-     ;; Fill missing SQL-FOREIGN-KEY-CONSTRAINT slots and make data-type
-     ;; consistency checks.
-     (init-foreign-key-slots)
-     ;; Sort schemas.
-     (let ((*sql-schemas* (sort *sql-schemas* #'string< :key #'name-of)))
-       ;; Sort tables.
-       (dolist (schema *sql-schemas*)
-         (setf (tables-of schema)
-               (sort (tables-of schema) #'string< :key #'name-of)))
-       ;; Start rendering collected schema information.
-       (with-output-redirection (,output-directory ,schema-output-file)
-         (render-schemas))
-       (with-output-redirection (,output-directory ,table-output-file)
-         (render-tables))
-       (with-output-redirection (,output-directory ,primary-key-output-file)
-         (render-primary-keys))
-       (with-output-redirection (,output-directory ,foreign-key-output-file)
-         (render-foreign-keys))
-       (with-output-redirection (,output-directory ,index-output-file)
-         (render-indexes)))))
+  (let ((*current-rdbms* (make-instance rdbms))
+        (*current-stream* *standard-output*)
+        (*current-identifier-case* identifier-case)
+        (*sql-schemas*))
+    ;; Read schema structure.
+    (eval
+     `(progn
+        ,@(with-open-file (in pathname)
+                          (with-standard-io-syntax
+                            (let ((*package* (find-package :sst)))
+                              (loop for form =  (read in nil nil)
+                                    while form collect form))))))
+    ;; Fill missing SQL-FOREIGN-KEY-CONSTRAINT slots and make data-type
+    ;; consistency checks.
+    (init-foreign-key-slots)
+    ;; Sort schemas.
+    (let ((*sql-schemas* (sort *sql-schemas* #'string< :key #'name-of)))
+      ;; Sort tables.
+      (dolist (schema *sql-schemas*)
+        (setf (tables-of schema)
+              (sort (tables-of schema) #'string< :key #'name-of)))
+      ;; Start rendering collected schema information.
+      (with-output-redirection (output-directory schema-output-file)
+        (render-schemas))
+      (with-output-redirection (output-directory table-output-file)
+        (render-tables))
+      (with-output-redirection (output-directory primary-key-output-file)
+        (render-primary-keys))
+      (with-output-redirection (output-directory foreign-key-output-file)
+        (render-foreign-keys))
+      (with-output-redirection (output-directory index-output-file)
+        (render-indexes)))))
