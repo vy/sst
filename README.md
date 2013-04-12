@@ -217,8 +217,10 @@ installation is just a single step:
 	  (VARCHAR &OPTIONAL SIZE &KEY UNICODE)
 
 > Caveats are
+>
 > - At the moment, `UNICODE` key is meaningful only to Microsoft SQL Server.
 > - At the moment, `WITH-TIME-ZONE` key is meaningful only to PostgreSQL.
+>
 > If one won't use any attributes of a data type, using list representation is optional.
 
     (WITH-FOREIGN-KEY TABLE &KEY SCHEMA ON-DELETE-CASCADE ON-UPDATE-CASCADE)
